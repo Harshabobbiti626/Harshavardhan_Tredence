@@ -2,7 +2,6 @@
 Tests verifying that backward pass correctly accumulates broadcasted gradients.
 """
 
-import pytest
 import numpy as np
 from engine.tensor import Tensor
 try:
@@ -37,6 +36,8 @@ class TestBroadcastingGradients:
         num_grad_b = compute_numerical_gradient(func_b, b_data.copy())
         num_grad_X = compute_numerical_gradient(func_X, X_data.copy())
 
+        assert tb.grad is not None
+        assert tX.grad is not None
         assert tb.grad.shape == b_data.shape
         assert tX.grad.shape == X_data.shape
         assert relative_error(tb.grad, num_grad_b) < 1e-6
@@ -66,6 +67,8 @@ class TestBroadcastingGradients:
         num_grad_a = compute_numerical_gradient(func_a, a_data.copy())
         num_grad_b = compute_numerical_gradient(func_b, b_data.copy())
 
+        assert ta.grad is not None
+        assert tb.grad is not None
         assert ta.grad.shape == (5, 1)
         assert tb.grad.shape == (1, 4)
         assert relative_error(ta.grad, num_grad_a) < 1e-6
@@ -88,7 +91,9 @@ class TestBroadcastingGradients:
         loss.backward()
 
         num_grad_s = compute_numerical_gradient(func_s, s_data.copy())
+        assert ts.grad is not None
         assert ts.grad.shape == ()
         assert relative_error(ts.grad, num_grad_s) < 1e-6
+
 
 

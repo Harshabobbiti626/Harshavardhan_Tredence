@@ -2,6 +2,7 @@
 Finite-difference numerical gradient checking test suite for reverse-mode autodiff.
 """
 
+from typing import Optional
 import pytest
 import numpy as np
 from engine.tensor import Tensor
@@ -34,7 +35,9 @@ def compute_numerical_gradient(f, x: np.ndarray, eps: float = 1e-6) -> np.ndarra
     return grad
 
 
-def relative_error(grad_analytic: np.ndarray, grad_numerical: np.ndarray) -> float:
+def relative_error(grad_analytic: Optional[np.ndarray], grad_numerical: np.ndarray) -> float:
+    if grad_analytic is None:
+        return 1.0
     diff = np.linalg.norm(grad_analytic - grad_numerical)
     denom = max(np.linalg.norm(grad_analytic), np.linalg.norm(grad_numerical), 1e-8)
     return float(diff / denom)
