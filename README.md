@@ -155,4 +155,3 @@ For comprehensive derivations and platform architecture details, see:
   2. The gradient of masked weights and formal analysis of Adam moment leakage / revival explosion.
   3. Autodiff engine profiling bottlenecks and static graph / kernel fusion optimization paths.
   4. Multi-tenant serving architecture at thousands of QPS (2:4 structured sparsity on NVIDIA Sparse Tensor Cores, zero-copy shared weight caching, dynamic batching).
-* [`INTERVIEW_DEFENSE_GUIDE.md`](INTERVIEW_DEFENSE_GUIDE.md): Master preparation cheat sheet for the 45-minute live technical defense.
