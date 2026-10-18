@@ -1,0 +1,74 @@
+{
+  "sparsity_levels": [
+    0.0,
+    0.5,
+    0.9
+  ],
+  "seeds": [
+    42
+  ],
+  "saliency": {
+    "0.0": [
+      {
+        "seed": 42,
+        "achieved_sparsity": 0.0,
+        "val_acc": 0.92,
+        "theoretical_speedup": 1.0,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 20340200.0
+      }
+    ],
+    "0.5": [
+      {
+        "seed": 42,
+        "achieved_sparsity": 0.4960051952141058,
+        "val_acc": 0.919375,
+        "theoretical_speedup": 1.9828234972997212,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 10258200.0
+      }
+    ],
+    "0.9": [
+      {
+        "seed": 42,
+        "achieved_sparsity": 0.8927995119647355,
+        "val_acc": 0.8575,
+        "theoretical_speedup": 9.275902955125867,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 2192800.0
+      }
+    ]
+  },
+  "magnitude": {
+    "0.0": [
+      {
+        "seed": 42,
+        "achieved_sparsity": 0.0,
+        "val_acc": 0.92,
+        "theoretical_speedup": 1.0,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 20340200.0
+      }
+    ],
+    "0.5": [
+      {
+        "seed": 42,
+        "achieved_sparsity": 0.4960051952141058,
+        "val_acc": 0.92125,
+        "theoretical_speedup": 1.9828234972997212,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 10258200.0
+      }
+    ],
+    "0.9": [
+      {
+        "seed": 42,
+        "achieved_sparsity": 0.8927995119647355,
+        "val_acc": 0.8775,
+        "theoretical_speedup": 9.275902955125867,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 2192800.0
+      }
+    ]
+  }
+}
