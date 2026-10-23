@@ -3,7 +3,7 @@ Importance criteria for connection pruning in self-pruning neural networks.
 """
 
 from __future__ import annotations
-from typing import Dict
+from typing import Dict, Optional
 import numpy as np
 from engine.tensor import Tensor
 
@@ -106,3 +106,18 @@ class MovementCriterion(ImportanceCriterion):
         # Movement: if W > 0 and g > 0, weight is being pushed downward (toward 0).
         # We assign higher importance to weights that resist pruning.
         return - (param.data * g)
+
+
+class RandomCriterion(ImportanceCriterion):
+    """
+    Random Pruning Baseline:
+      Assigns uniform random scores to connections to evaluate pruning
+      against unguided random edge elimination in ablation studies.
+    """
+
+    def __init__(self, seed: Optional[int] = None):
+        self.rng = np.random.RandomState(seed)
+
+    def compute_importance(self, param: Tensor) -> np.ndarray:
+        return self.rng.uniform(0.0, 1.0, size=param.shape)
+

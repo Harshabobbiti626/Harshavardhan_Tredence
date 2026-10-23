@@ -1,7 +1,7 @@
 """
-Dataset loading and mini-batch generation for AQUA Platform.
-NOTE: As permitted by challenge instructions, scikit-learn is used solely
-for loading the standard dataset. All training, models, and autodiff are from scratch.
+Dataset ingestion, caching, and mini-batch generation for AQUA Platform.
+Uses scikit-learn exclusively for downloading standard MNIST images.
+All computational graphs, layers, models, and optimizers are built from scratch.
 """
 
 from __future__ import annotations

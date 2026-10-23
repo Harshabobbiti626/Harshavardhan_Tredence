@@ -71,16 +71,17 @@ class Pruner:
             current_mask = param.mask if param.mask is not None else np.ones(param.shape, dtype=bool)
             scores = self.criterion.compute_importance(param)
 
-            if not self.allow_regrowth:
+            # Compute target number of zero weights
+            k = int(np.round(param.size * target_sparsity))
+            if k >= param.size:
+                k = param.size - 1
+
+            flat_scores = scores.flatten()
+
+            if not self.allow_regrowth or np.all(current_mask):
                 # Standard progressive pruning:
                 # Rank all weights, prune bottom target_sparsity fraction
-                k = int(np.round(param.size * target_sparsity))
-                if k >= param.size:
-                    k = param.size - 1
-
                 if k > 0:
-                    flat_scores = scores.flatten()
-                    # Directly partition indices to prune exactly k smallest elements in O(N) time
                     prune_indices = np.argpartition(flat_scores, k)[:k]
                     new_mask = np.ones(param.size, dtype=bool)
                     new_mask[prune_indices] = False
@@ -91,48 +92,45 @@ class Pruner:
                 param.set_mask(new_mask)
 
             else:
-                # Bonus Dynamic Regrowth (RigL / Dynamic Sparse Training):
+                # Dynamic Regrowth (RigL / Dynamic Sparse Training):
                 # 1. Prune bottom regrowth_ratio of currently active weights
                 active_indices = np.where(current_mask)
                 num_active = len(active_indices[0])
-                num_to_prune = int(np.round(num_active * self.regrowth_ratio))
+                num_to_swap = int(np.round(num_active * self.regrowth_ratio))
 
-                prune_rows = np.array([], dtype=int)
-                prune_cols = np.array([], dtype=int)
-                if num_to_prune > 0:
+                if num_to_swap > 0:
                     active_scores = scores[active_indices]
-                    prune_order = np.argsort(active_scores)[:num_to_prune]
+                    prune_order = np.argsort(active_scores)[:num_to_swap]
                     prune_rows = active_indices[0][prune_order]
                     prune_cols = active_indices[1][prune_order]
 
-                # 2. Revive top regrowth_ratio of dormant weights based on gradient magnitude
-                dormant_indices = np.where(~current_mask)
-                num_dormant = len(dormant_indices[0])
+                    # 2. Revive top regrowth_ratio of dormant weights based on gradient magnitude
+                    dormant_indices = np.where(~current_mask)
+                    num_dormant = len(dormant_indices[0])
+                    num_to_revive = min(num_to_swap, num_dormant)
 
-                if num_dormant > 0 and num_to_prune > 0:
-                    grad_scores = np.abs(param.grad) if param.grad is not None else np.abs(np.random.randn(*param.shape))
-                    dormant_scores = grad_scores[dormant_indices]
-                    num_to_revive = min(num_to_prune, num_dormant)
-                    revive_order = np.argsort(dormant_scores)[-num_to_revive:]
-                    revive_rows = dormant_indices[0][revive_order]
-                    revive_cols = dormant_indices[1][revive_order]
+                    if num_to_revive > 0:
+                        grad_scores = np.abs(param.grad) if param.grad is not None else np.abs(np.random.randn(*param.shape))
+                        dormant_scores = grad_scores[dormant_indices]
+                        revive_order = np.argsort(dormant_scores)[-num_to_revive:]
+                        revive_rows = dormant_indices[0][revive_order]
+                        revive_cols = dormant_indices[1][revive_order]
 
-                    new_mask = current_mask.copy()
-                    if len(prune_rows) > 0:
+                        new_mask = current_mask.copy()
                         new_mask[prune_rows, prune_cols] = False
-                    new_mask[revive_rows, revive_cols] = True
+                        new_mask[revive_rows, revive_cols] = True
 
-                    # Reset optimizer moments for revived weights to avoid momentum contamination
-                    if self.optimizer is not None:
-                        pid = id(param)
-                        if pid in self.optimizer.state:
-                            state = self.optimizer.state[pid]
-                            if "m" in state:
-                                state["m"][revive_rows, revive_cols] = 0.0
-                            if "v" in state:
-                                state["v"][revive_rows, revive_cols] = 0.0
+                        # Reset optimizer moments for revived weights to avoid momentum contamination
+                        if self.optimizer is not None:
+                            pid = id(param)
+                            if pid in self.optimizer.state:
+                                state = self.optimizer.state[pid]
+                                if "m" in state:
+                                    state["m"][revive_rows, revive_cols] = 0.0
+                                if "v" in state:
+                                    state["v"][revive_rows, revive_cols] = 0.0
 
-                    param.set_mask(new_mask)
+                        param.set_mask(new_mask)
 
     def get_sparsity(self) -> float:
         total = self.get_total_params()

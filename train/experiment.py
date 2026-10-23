@@ -1,6 +1,6 @@
 """
-Pareto sweep experiment runner, baseline comparison, and evidence generation.
-Generates committed plots and raw JSON numbers for Part 4.
+Pareto sweep experiment runner, baseline comparison, and empirical verification.
+Generates committed plots and raw JSON numbers across random seeds and sparsities.
 """
 
 from __future__ import annotations
@@ -14,8 +14,13 @@ import matplotlib.pyplot as plt
 
 from nn.layers import Linear, ReLULayer, Sequential
 from nn.optim import Adam
-from prune.criteria import TaylorSaliencyCriterion, MagnitudeCriterion
-from prune.scheduler import CubicSparsityScheduler
+from prune.criteria import (
+    TaylorSaliencyCriterion,
+    MagnitudeCriterion,
+    MovementCriterion,
+    RandomCriterion,
+)
+from prune.scheduler import CubicSparsityScheduler, ConstantSparsityScheduler
 from prune.mask import Pruner
 from prune.sparse_engine import benchmark_dense_vs_sparse
 from train.dataset import load_dataset, DataLoader
@@ -34,16 +39,19 @@ def build_mlp(in_features: int = 784, hidden_dim: int = 128, num_classes: int = 
 
 def train_single_model(
     target_sparsity: float,
-    criterion_type: str = "saliency",  # "saliency" or "magnitude"
+    criterion_type: str = "saliency",  # "saliency", "magnitude", "movement", "random"
     epochs: int = 8,
     batch_size: int = 64,
     lr: float = 1e-3,
     seed: int = 42,
     dataset_name: str = "mnist",
     allow_regrowth: bool = False,
+    ema_decay: float = 0.9,
+    scheduler_type: str = "cubic",  # "cubic" or "constant"
+    sanitize_moments: bool = True,
     verbose: bool = False,
 ) -> Dict[str, Any]:
-    """Train a single model under target sparsity and criterion."""
+    """Train a single model under target sparsity, criterion, scheduler, and optimizer configuration."""
     np.random.seed(seed)
     X_train, y_train, X_test, y_test = load_dataset(dataset_name, seed=seed, max_samples=8000)
 
@@ -51,26 +59,33 @@ def train_single_model(
     val_loader = DataLoader(X_test, y_test, batch_size=batch_size, shuffle=False)
 
     model = build_mlp(in_features=784, hidden_dim=128, num_classes=10, seed=seed)
-    optimizer = Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+    optimizer = Adam(model.parameters(), lr=lr, weight_decay=1e-4, sanitize_moments=sanitize_moments)
 
     pruner = None
     if target_sparsity > 0.0:
         total_steps = len(train_loader) * epochs
-        start_step = len(train_loader) * 1  # 1 epoch warm-up
-        end_step = int(total_steps * 0.75)  # 75% gradual ramp, 25% fine-tuning
+        start_step = max(1, int(total_steps * 0.15))
+        end_step = max(start_step + 1, int(total_steps * 0.75))
 
         if criterion_type == "saliency":
-            criterion = TaylorSaliencyCriterion(ema_decay=0.9)
+            criterion = TaylorSaliencyCriterion(ema_decay=ema_decay)
+        elif criterion_type == "movement":
+            criterion = MovementCriterion(ema_decay=ema_decay)
+        elif criterion_type == "random":
+            criterion = RandomCriterion(seed=seed)
         else:
             criterion = MagnitudeCriterion()
 
-        scheduler = CubicSparsityScheduler(
-            initial_sparsity=0.0,
-            final_sparsity=target_sparsity,
-            start_step=start_step,
-            end_step=end_step,
-            prune_freq=20,
-        )
+        if scheduler_type == "constant":
+            scheduler = ConstantSparsityScheduler(target_sparsity=target_sparsity, prune_step=start_step)
+        else:
+            scheduler = CubicSparsityScheduler(
+                initial_sparsity=0.0,
+                final_sparsity=target_sparsity,
+                start_step=start_step,
+                end_step=end_step,
+                prune_freq=20,
+            )
         pruner = Pruner(
             model=model,
             criterion=criterion,
@@ -107,8 +122,8 @@ def run_pareto_experiment(
     output_dir: str = "results",
 ) -> Dict[str, Any]:
     """
-    Executes the full Part 4 Sparsity-Accuracy Pareto sweep across multiple seeds.
-    Compares Taylor Saliency vs Magnitude Baseline and produces committed artifacts.
+    Executes the Sparsity-Accuracy Pareto sweep across multiple random seeds.
+    Compares Taylor Saliency vs Magnitude Baseline and produces benchmark artifacts.
     """
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     if not os.path.isabs(output_dir):
@@ -122,7 +137,7 @@ def run_pareto_experiment(
     }
 
     print("=" * 80)
-    print("STARTING PART 4 PARETO SWEEP ACROSS SEEDS & CRITERIA")
+    print("STARTING SPARSITY-ACCURACY PARETO SWEEP ACROSS SEEDS & CRITERIA")
     print("=" * 80)
 
     for sp in sparsity_levels:
@@ -246,3 +261,147 @@ def _plot_pareto_curve(results: Dict[str, Any], save_path: str) -> None:
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.close()
+
+
+def run_ablation_experiments(
+    output_dir: str = "results",
+    epochs: int = 6,
+    seed: int = 42,
+) -> Dict[str, Any]:
+    """
+    Executes the comprehensive empirical ablation suite:
+      1. Pruning Criteria: Taylor Saliency vs Magnitude vs Movement vs Random
+      2. Optimizer Sanitization: Sanitized Adam (m*M, v*M) vs Unsanitized Adam (momentum leakage)
+      3. Gradient EMA Smoothing: EMA (gamma=0.9) vs Raw mini-batch gradient (gamma=0.0)
+      4. Sparsity Schedule: Gradual Cubic Polynomial vs Instant / Constant Step
+      5. Topology Dynamics: Static Pruning vs RigL Dynamic Regrowth (at 90% and 95% sparsity)
+    """
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    if not os.path.isabs(output_dir):
+        output_dir = os.path.join(repo_root, output_dir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    ablation_results: Dict[str, Any] = {
+        "metadata": {
+            "epochs": epochs,
+            "seed": seed,
+            "dataset": "mnist",
+            "target_sparsity": 0.90,
+        },
+        "criteria_ablation": {},
+        "sanitization_ablation": {},
+        "ema_ablation": {},
+        "schedule_ablation": {},
+        "regrowth_ablation": {},
+    }
+
+    print("=" * 80)
+    print("AQUA ENGINE -- COMPREHENSIVE EMPIRICAL ABLATION SUITE")
+    print("=" * 80)
+
+    # 1. Pruning Criteria Ablation (90% sparsity)
+    print("\n[Ablation 1/5] Pruning Criteria Comparison (90% Target Sparsity)...")
+    for crit in ["saliency", "magnitude", "movement", "random"]:
+        print(f"  Running Criterion: {crit}...")
+        res = train_single_model(
+            target_sparsity=0.90,
+            criterion_type=crit,
+            epochs=epochs,
+            seed=seed,
+            verbose=False,
+        )
+        ablation_results["criteria_ablation"][crit] = {
+            "val_acc": res["final_val_acc"],
+            "achieved_sparsity": res["achieved_sparsity"],
+            "theoretical_speedup": res["benchmark"]["theoretical_speedup"],
+        }
+        print(f"  -> {crit.capitalize()}: Acc={res['final_val_acc']*100:.2f}%, Sparsity={res['achieved_sparsity']*100:.2f}%")
+
+    # 2. Optimizer Moment Sanitization Ablation (90% sparsity)
+    print("\n[Ablation 2/5] Optimizer Moment Sanitization (Sanitized vs. Unsanitized Adam)...")
+    for sanitize in [True, False]:
+        tag = "sanitized" if sanitize else "unsanitized"
+        print(f"  Running Adam: {tag}...")
+        res = train_single_model(
+            target_sparsity=0.90,
+            criterion_type="saliency",
+            epochs=epochs,
+            seed=seed,
+            sanitize_moments=sanitize,
+            verbose=False,
+        )
+        ablation_results["sanitization_ablation"][tag] = {
+            "val_acc": res["final_val_acc"],
+            "achieved_sparsity": res["achieved_sparsity"],
+            "sanitized": sanitize,
+        }
+        print(f"  -> Adam ({tag}): Acc={res['final_val_acc']*100:.2f}%")
+
+    # 3. Gradient EMA Smoothing Ablation (90% sparsity)
+    print("\n[Ablation 3/5] Gradient EMA Smoothing (gamma=0.9 vs. gamma=0.0)...")
+    for ema in [0.9, 0.0]:
+        tag = "ema_0.9" if ema > 0 else "raw_minibatch_0.0"
+        print(f"  Running EMA: {tag}...")
+        res = train_single_model(
+            target_sparsity=0.90,
+            criterion_type="saliency",
+            epochs=epochs,
+            seed=seed,
+            ema_decay=ema,
+            verbose=False,
+        )
+        ablation_results["ema_ablation"][tag] = {
+            "val_acc": res["final_val_acc"],
+            "achieved_sparsity": res["achieved_sparsity"],
+            "ema_decay": ema,
+        }
+        print(f"  -> EMA ({tag}): Acc={res['final_val_acc']*100:.2f}%")
+
+    # 4. Sparsity Schedule Ablation (90% sparsity)
+    print("\n[Ablation 4/5] Sparsity Schedule (Cubic Polynomial vs. Constant One-Shot)...")
+    for sched in ["cubic", "constant"]:
+        print(f"  Running Schedule: {sched}...")
+        res = train_single_model(
+            target_sparsity=0.90,
+            criterion_type="saliency",
+            epochs=epochs,
+            seed=seed,
+            scheduler_type=sched,
+            verbose=False,
+        )
+        ablation_results["schedule_ablation"][sched] = {
+            "val_acc": res["final_val_acc"],
+            "achieved_sparsity": res["achieved_sparsity"],
+        }
+        print(f"  -> Schedule ({sched}): Acc={res['final_val_acc']*100:.2f}%")
+
+    # 5. Static vs. RigL Dynamic Regrowth Ablation (90% and 95% sparsity)
+    print("\n[Ablation 5/5] Static Pruning vs. RigL Dynamic Regrowth (90% & 95% Sparsity)...")
+    for sp in [0.90, 0.95]:
+        sp_key = f"{int(sp*100)}%"
+        ablation_results["regrowth_ablation"][sp_key] = {}
+        for regrowth in [False, True]:
+            mode = "rigl_regrowth" if regrowth else "static_pruning"
+            print(f"  Running Sparsity={sp_key}, Mode={mode}...")
+            res = train_single_model(
+                target_sparsity=sp,
+                criterion_type="saliency",
+                epochs=epochs,
+                seed=seed,
+                allow_regrowth=regrowth,
+                verbose=False,
+            )
+            ablation_results["regrowth_ablation"][sp_key][mode] = {
+                "val_acc": res["final_val_acc"],
+                "achieved_sparsity": res["achieved_sparsity"],
+            }
+            print(f"  -> Sparsity {sp_key} ({mode}): Acc={res['final_val_acc']*100:.2f}%")
+
+    # Save to JSON
+    out_path = os.path.join(output_dir, "ablation_metrics.json")
+    with open(out_path, "w") as f:
+        json.dump(ablation_results, f, indent=2)
+    print(f"\n[Artifact Saved] Ablation metrics written to {out_path}")
+    print("=" * 80)
+    return ablation_results
+

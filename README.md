@@ -1,134 +1,109 @@
-# AQUA Platform — Self-Pruning Neural Network & Autodiff Engine
+# AQUA Engine — Self-Pruning Neural Network & Autodiff from Scratch
 
-A complete, production-grade neural network library and self-pruning classifier built entirely from scratch in **pure Python and NumPy**, without deep learning frameworks (no PyTorch, TensorFlow, JAX, Keras, Autograd, or HuggingFace).
+A first-principles deep learning framework and self-pruning neural network engine built in **pure Python and NumPy** with zero framework dependencies (no PyTorch, TensorFlow, JAX, Autograd, or Hugging Face).
 
-Designed for the **AQUA Enterprise AI Agent Platform** (Senior / Staff AI Platform Engineer Challenge).
-
----
-
-## 1. Executive Summary & Challenge Highlights
-
-* **Pure Reverse-Mode Autodiff Engine (`engine/`):** Dynamic DAG computation graph, topological DFS sort, exact broadcasting accumulation, and fused numerically stable Softmax Cross-Entropy with log-sum-exp trick.
-* **The "AI Trap" Caught & Resolved (`nn/optim.py`):** Solves the momentum leakage and latent parameter drift bug common in naive masked-network implementations. Explicitly sanitizes Adam first ($m_t$) and second ($v_t$) moments on masked weights and isolates revived connections.
-* **Derived First-Order Taylor Saliency Pruning (`prune/`):** Pruning connections based on multivariate Taylor expansion approximation of loss increase: $\mathcal{I}_{ij} = |W_{ij} \cdot \bar{g}_{ij}|$ combined with a cubic sparsity ramp schedule (0% $\to$ 90%).
-* **Honest Real Cost Measurement (`prune/sparse_engine.py`):** Converts pruned models into Compressed Sparse Row (CSR) format, executing sparse forward matrix multiplications ($Y = X \cdot W_{\text{CSR}}^T + b$) that genuinely skip zero weights, reducing theoretical FLOPs by **9.94x** at 90% sparsity.
-* **Falsifiable Statistical Claim (`results/`):** At 90% parameter sparsity on MNIST classification, our Taylor Saliency pruning retains **90.81% $\pm$ 0.32%** validation accuracy across 3 random seeds while reducing theoretical compute by **9.94x**.
+Designed for the **AQUA Enterprise AI Platform**, this project explores the systems and numerical foundations of dynamic computation graphs, automatic differentiation, gradient invariant preservation in masked optimizers, and sparse-aware matrix execution.
 
 ---
 
-## 2. Permitted Library Usage Disclosure
-As explicitly stated in the challenge rules:
-> *"Scikit-learn may be used only to load a standard dataset — not for training, models, or gradients — and you must state this explicitly in your README."*
+## 1. Core Systems Capabilities
 
-**Explicit Statement:** Scikit-learn (`fetch_openml`) is used exclusively to fetch and cache the standard MNIST dataset (`train/dataset.py`). All neural network layers, tensor graphs, forward passes, automatic differentiation, optimizers (Adam & SGD), pruning schedulers, and sparse CSR kernels were written from scratch using pure NumPy and Python 3.10+.
+* **Reverse-Mode Autodiff Engine (`engine/`):** Dynamic DAG construction, recursive DFS topological sorting, exact multi-dimensional broadcasting reduction (`unbroadcast`), and fused numerically stable Softmax Cross-Entropy.
+* **Momentum Isolation in Masked Optimizers (`nn/optim.py`):** Solves the momentum leakage bug in naive masked adaptive optimizers. Zeroes out Adam first ($m_t$) and second ($v_t$) moments on dormant weights ($m_t \odot M, v_t \odot M$), preventing parameter drift and revival instability.
+* **First-Order Taylor Saliency Pruning (`prune/`):** Connection importance derived via multivariate Taylor series expansion ($\mathcal{I}_{ij} = |W_{ij} \cdot \bar{g}_{ij}|$) with gradient EMA smoothing and a cubic polynomial sparsity schedule ($0\% \to 90\%$).
+* **Sparse CSR Inference Engine (`prune/sparse_engine.py`):** Converts pruned models to Compressed Sparse Row format, executing forward passes exclusively over non-zero parameters for genuine compute reduction.
+* **Dynamic Sparse Training (`prune/mask.py`):** RigL gradient-based dynamic parameter regrowth periodically pruning dormant connections and resurrecting high-gradient paths.
+
+---
+
+## 2. Dependency Policy & Compliance Statement
+
+* **Zero Framework Abstractions:** No deep learning or automatic differentiation libraries are used.
+* **Dataset Ingestion Only:** `scikit-learn` (`fetch_openml`) is used solely to download and cache the standard MNIST dataset in [`train/dataset.py`](train/dataset.py).
+* **Pure Python & NumPy:** All computational graph tensors, automatic differentiation, loss functions, modules, optimizers (Adam & SGD), schedulers, and CSR sparse inference are implemented from scratch in pure Python 3.10+ and standard NumPy.
 
 ---
 
 ## 3. Quick Start & Installation
 
-### Prerequisites
-* Python 3.10 or newer (tested on Python 3.10 through 3.13)
+### Requirements
+* Python 3.10+
 * Dependencies: `numpy`, `scipy`, `matplotlib`, `scikit-learn`, `pytest`
 
-### Installation
-Using standard `pip`:
+### Setup
 ```bash
 pip install -r requirements.txt
 pip install -e .
 ```
-Or using `uv`:
-```bash
-uv pip install -r requirements.txt
-uv pip install -e .
-```
 
 ---
 
-## 4. Single-Command Reproduction Suite
+## 4. Pipeline Execution Suite
 
-### 1. Run Automated Finite-Difference Gradient Checks & Correctness Tests (Part 1)
-Executes all 14 unit tests, verifying finite-difference gradients ($< 10^{-6}$ relative error), multi-dimensional broadcasting accumulation, and Adam moment sanitization on masked weights:
 ```bash
+# 1. Run numerical gradient checks & masked optimizer unit tests
 python scripts/run_grad_check.py
-```
-*(On Windows: `py scripts/run_grad_check.py` or directly with `pytest`)*
 
-### 2. Train Dense Baseline Model with Adam (Part 2)
-Trains the dense MLP ($784 \to 128 \to 10$) from scratch with custom Adam and reports epoch-by-epoch loss and accuracy:
-```bash
+# 2. Train dense baseline MLP with custom Adam
 python scripts/run_train.py
-```
-*(Achieves ~93.3% - 94.8% validation accuracy with stable descent and zero NaNs).*
 
-### 3. Run Self-Pruning Network to 90% Target Sparsity (Part 3)
-Trains the network while progressively pruning away 90% of its connections under a cubic schedule using derived first-order Taylor saliency:
-```bash
+# 3. Train self-pruning network to 90% target sparsity (Taylor Saliency + Cubic Schedule)
 python scripts/run_prune.py
-```
-*(Achieves 90.00% sparsity, retaining ~91-92% validation accuracy and achieving a 9.94x theoretical FLOP reduction).*
 
-### 4. Run Sparsity-Accuracy Pareto Sweep Across Multiple Seeds (Part 4)
-Sweeps target sparsities ($0\%, 50\%, 75\%, 90\%, 95\%$) across multiple random seeds ($42, 123, 999$), compares Taylor Saliency against the Magnitude Pruning baseline, and exports committed artifacts:
-```bash
+# 4. Run multi-seed Pareto sweep (evaluates 0%, 50%, 75%, 90%, 95% across seeds 42, 123, 999)
 python scripts/run_pareto.py
+# (Fast verification mode: python scripts/run_pareto.py --quick)
+
+# 5. Run 5-dimension empirical ablation suite (criteria, sanitization, EMA, schedule, RigL)
+python scripts/run_ablations.py
+# (Fast verification mode: python scripts/run_ablations.py --quick)
 ```
-*(For a ~20s fast verification sweep, append `--quick`: `python scripts/run_pareto.py --quick`)*
-
-Outputs:
-* Raw Metrics: `results/raw_metrics.json`
-* Committed Plot: `results/pareto_curve.png`
-
-
 
 ---
 
 ## 5. Repository Architecture
 
 ```
-Take Home Assignement Tredence/
+aqua-prune-engine/
 ├── engine/
-│   ├── __init__.py
-│   ├── tensor.py          # Autodiff Tensor class, DAG, backward, broadcasting unbroadcast
-│   └── ops.py             # Differentiable ops (+, -, *, /, @, sum, mean, relu, gelu, tanh, sigmoid, softmax_ce)
+│   ├── tensor.py          # Autodiff Tensor class, dynamic DAG, reverse chain rule, unbroadcast
+│   └── ops.py             # Differentiable operators & fused stable softmax_cross_entropy
 ├── nn/
-│   ├── __init__.py
-│   ├── layers.py          # Module, Linear (Kaiming normal init), ReLU, GELU, Sequential
-│   └── optim.py           # Custom Adam and SGD with masked-weight isolation & moment sanitization
+│   ├── layers.py          # Module, Linear (Kaiming init), ReLU, GELU, Sequential
+│   └── optim.py           # Adam and SGD with masked-weight isolation & moment sanitization
 ├── prune/
-│   ├── __init__.py
-│   ├── mask.py            # Pruner manager, mask tracking, RigL dynamic regrowth
-│   ├── criteria.py        # Taylor saliency (|w * g|), magnitude (|w|), movement pruning
+│   ├── criteria.py        # Taylor saliency (|w * g|), magnitude, movement, random
 │   ├── scheduler.py       # Cubic polynomial sparsity ramp (Zhu & Gupta, 2017)
+│   ├── mask.py            # Pruner manager, mask tracking, RigL dynamic regrowth
 │   └── sparse_engine.py   # CSR sparse forward inference & true FLOPs counter
 ├── train/
-│   ├── __init__.py
-│   ├── dataset.py         # MNIST loader with caching and offline synthetic fallback
+│   ├── dataset.py         # MNIST loader with caching and synthetic fallback
 │   ├── trainer.py         # Mini-batched training loop and validation logger
-│   └── experiment.py      # Pareto sweep runner across seeds and criteria
+│   └── experiment.py      # Multi-seed Pareto sweep and ablation suite runner
 ├── tests/
-│   ├── __init__.py
 │   ├── test_autodiff.py   # Finite-difference gradient checking (< 1e-6 relative error)
 │   ├── test_broadcast.py  # Broadcasting gradient accumulation verification
 │   └── test_masked_opt.py # Proof of zero masked gradient and Adam moment isolation
 ├── scripts/
-│   ├── run_grad_check.py  # 1-command Part 1 runner
-│   ├── run_train.py       # 1-command Part 2 runner
-│   ├── run_prune.py       # 1-command Part 3 runner
-│   └── run_pareto.py      # 1-command Part 4 runner
+│   ├── run_grad_check.py  # Gradient verification test runner
+│   ├── run_train.py       # Dense baseline training runner
+│   ├── run_prune.py       # Self-pruning training runner
+│   ├── run_pareto.py      # Pareto sweep runner
+│   └── run_ablations.py   # Ablation suite runner
 ├── results/
-│   ├── pareto_curve.png   # Committed Pareto curve plot
-│   └── raw_metrics.json   # Committed raw metrics across seeds and sparsities
-├── DESIGN.md              # Deep mathematical derivations and platform scaling answers
-├── README.md              # Setup, reproduction, and architecture overview
+│   ├── pareto_curve.png   # Pareto curve plot
+│   ├── raw_metrics.json   # Multi-seed raw metric logs
+│   └── ablation_metrics.json # Empirical ablation study numbers
+├── DESIGN.md              # Mathematical derivations, systems analysis, & design trade-offs
 ├── pyproject.toml         # Package configuration and build system
 └── requirements.txt       # Core project dependencies
 ```
 
 ---
 
-## 6. Empirical Results & Falsifiable Claim
+## 6. Empirical Results & Performance Invariants
 
-### Committed Results Summary (MNIST Classification)
+### Benchmark Results (MNIST Classification across Seeds 42, 123, 999)
 
 | Target Sparsity | Active Parameters | Saliency Accuracy (Mean $\pm$ Std) | Magnitude Accuracy (Mean $\pm$ Std) | Theoretical Compute Speedup (CSR FLOPs) |
 |:---------------:|:-----------------:|:----------------------------------:|:-----------------------------------:|:---------------------------------------:|
@@ -138,20 +113,15 @@ Take Home Assignement Tredence/
 | **90.0%**       | 10,162 / 101,632  | **90.81% $\pm$ 0.32%**             | **92.48% $\pm$ 0.52%**              | **9.94x**                               |
 | **95.0%**       | 5,081 / 101,632   | **88.60% $\pm$ 0.48%**             | **88.94% $\pm$ 0.77%**              | **19.82x**                              |
 
-### Pareto Curve Plot
-The plot below is generated by `scripts/run_pareto.py` and committed to `results/pareto_curve.png`:
-* Left: Validation Accuracy vs. Achieved Sparsity with multi-seed error bars.
-* Right: True Compute Reduction (CSR non-zero FLOPs speedup).
-
-### The Falsifiable Quantitative Claim
-> *"At 90% parameter sparsity on standard MNIST classification across 3 fixed random seeds (42, 123, 999), our self-pruning network retains 90.81% $\pm$ 0.32% validation accuracy while achieving an honest 9.94x theoretical reduction in non-zero FLOPs using a sparse-aware Compressed Sparse Row (CSR) forward path, with zero gradient leakage and sanitized optimizer moments."*
+### Verified Hypothesis
+> *"At 90% parameter sparsity on standard MNIST classification across 3 fixed random seeds (42, 123, 999), the self-pruning network retains 90.81% $\pm$ 0.32% validation accuracy while achieving an honest 9.94x theoretical reduction in non-zero FLOPs using a sparse-aware Compressed Sparse Row (CSR) forward path, with zero gradient leakage and sanitized optimizer moments."*
 
 ---
 
 ## 7. Deep Platform & Mathematical Analysis
-For comprehensive derivations and platform architecture details, see:
-* [`DESIGN.md`](DESIGN.md):
-  1. Multivariate Taylor series derivation of $\mathcal{I} = |W \cdot \nabla_W \mathcal{L}|$.
-  2. The gradient of masked weights and formal analysis of Adam moment leakage / revival explosion.
-  3. Autodiff engine profiling bottlenecks and static graph / kernel fusion optimization paths.
-  4. Multi-tenant serving architecture at thousands of QPS (2:4 structured sparsity on NVIDIA Sparse Tensor Cores, zero-copy shared weight caching, dynamic batching).
+For formal mathematical proofs, systems profiling analysis, and multi-tenant serving design, refer to [`DESIGN.md`](DESIGN.md):
+1. **Multivariate Taylor Series Derivation:** $\mathcal{I}_{ij} = |W_{ij} \cdot \frac{\partial \mathcal{L}}{\partial W_{ij}}|$.
+2. **Masked Gradient Invariant & Adam Moment Sanitization:** Mathematical proof of zero gradient for masked weights and analysis of revival explosion.
+3. **Autodiff Profiling & Engine Bottlenecks:** Memory allocations, dispatch overhead, and kernel fusion optimization paths.
+4. **Multi-Tenant Serving Architecture:** Unstructured CSR vs. 2:4 structured sparsity on hardware Tensor Cores, zero-copy weight caching, and dynamic micro-batching.
+5. **Empirical Ablations:** Quantitative evaluation of criteria, moment sanitization, gradient EMA, cubic schedules, and RigL dynamic parameter regrowth.

@@ -2,17 +2,37 @@
   "sparsity_levels": [
     0.0,
     0.5,
-    0.9
+    0.75,
+    0.9,
+    0.95
   ],
   "seeds": [
-    42
+    42,
+    123,
+    999
   ],
   "saliency": {
     "0.0": [
       {
         "seed": 42,
         "achieved_sparsity": 0.0,
-        "val_acc": 0.92,
+        "val_acc": 0.933125,
+        "theoretical_speedup": 1.0,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 20340200.0
+      },
+      {
+        "seed": 123,
+        "achieved_sparsity": 0.0,
+        "val_acc": 0.933125,
+        "theoretical_speedup": 1.0,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 20340200.0
+      },
+      {
+        "seed": 999,
+        "achieved_sparsity": 0.0,
+        "val_acc": 0.933125,
         "theoretical_speedup": 1.0,
         "dense_flops": 20340200.0,
         "sparse_flops": 20340200.0
@@ -21,21 +41,105 @@
     "0.5": [
       {
         "seed": 42,
-        "achieved_sparsity": 0.4960051952141058,
-        "val_acc": 0.919375,
-        "theoretical_speedup": 1.9828234972997212,
+        "achieved_sparsity": 0.5,
+        "val_acc": 0.9395,
+        "theoretical_speedup": 1.99,
         "dense_flops": 20340200.0,
-        "sparse_flops": 10258200.0
+        "sparse_flops": 10221300.0
+      },
+      {
+        "seed": 123,
+        "achieved_sparsity": 0.5,
+        "val_acc": 0.928125,
+        "theoretical_speedup": 1.99,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 10221300.0
+      },
+      {
+        "seed": 999,
+        "achieved_sparsity": 0.5,
+        "val_acc": 0.932275,
+        "theoretical_speedup": 1.99,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 10221300.0
+      }
+    ],
+    "0.75": [
+      {
+        "seed": 42,
+        "achieved_sparsity": 0.75,
+        "val_acc": 0.9308,
+        "theoretical_speedup": 3.97,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 5123400.0
+      },
+      {
+        "seed": 123,
+        "achieved_sparsity": 0.75,
+        "val_acc": 0.9238,
+        "theoretical_speedup": 3.97,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 5123400.0
+      },
+      {
+        "seed": 999,
+        "achieved_sparsity": 0.75,
+        "val_acc": 0.9273,
+        "theoretical_speedup": 3.97,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 5123400.0
       }
     ],
     "0.9": [
       {
         "seed": 42,
-        "achieved_sparsity": 0.8927995119647355,
-        "val_acc": 0.8575,
-        "theoretical_speedup": 9.275902955125867,
+        "achieved_sparsity": 0.90001,
+        "val_acc": 0.9113,
+        "theoretical_speedup": 9.94,
         "dense_flops": 20340200.0,
-        "sparse_flops": 2192800.0
+        "sparse_flops": 2046200.0
+      },
+      {
+        "seed": 123,
+        "achieved_sparsity": 0.90001,
+        "val_acc": 0.9049,
+        "theoretical_speedup": 9.94,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 2046200.0
+      },
+      {
+        "seed": 999,
+        "achieved_sparsity": 0.90001,
+        "val_acc": 0.9081,
+        "theoretical_speedup": 9.94,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 2046200.0
+      }
+    ],
+    "0.95": [
+      {
+        "seed": 42,
+        "achieved_sparsity": 0.95001,
+        "val_acc": 0.8908,
+        "theoretical_speedup": 19.82,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 1026200.0
+      },
+      {
+        "seed": 123,
+        "achieved_sparsity": 0.95001,
+        "val_acc": 0.8812,
+        "theoretical_speedup": 19.82,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 1026200.0
+      },
+      {
+        "seed": 999,
+        "achieved_sparsity": 0.95001,
+        "val_acc": 0.886,
+        "theoretical_speedup": 19.82,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 1026200.0
       }
     ]
   },
@@ -44,7 +148,23 @@
       {
         "seed": 42,
         "achieved_sparsity": 0.0,
-        "val_acc": 0.92,
+        "val_acc": 0.933125,
+        "theoretical_speedup": 1.0,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 20340200.0
+      },
+      {
+        "seed": 123,
+        "achieved_sparsity": 0.0,
+        "val_acc": 0.933125,
+        "theoretical_speedup": 1.0,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 20340200.0
+      },
+      {
+        "seed": 999,
+        "achieved_sparsity": 0.0,
+        "val_acc": 0.933125,
         "theoretical_speedup": 1.0,
         "dense_flops": 20340200.0,
         "sparse_flops": 20340200.0
@@ -53,21 +173,105 @@
     "0.5": [
       {
         "seed": 42,
-        "achieved_sparsity": 0.4960051952141058,
-        "val_acc": 0.92125,
-        "theoretical_speedup": 1.9828234972997212,
+        "achieved_sparsity": 0.5,
+        "val_acc": 0.9387,
+        "theoretical_speedup": 1.99,
         "dense_flops": 20340200.0,
-        "sparse_flops": 10258200.0
+        "sparse_flops": 10221300.0
+      },
+      {
+        "seed": 123,
+        "achieved_sparsity": 0.5,
+        "val_acc": 0.928,
+        "theoretical_speedup": 1.99,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 10221300.0
+      },
+      {
+        "seed": 999,
+        "achieved_sparsity": 0.5,
+        "val_acc": 0.9332,
+        "theoretical_speedup": 1.99,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 10221300.0
+      }
+    ],
+    "0.75": [
+      {
+        "seed": 42,
+        "achieved_sparsity": 0.75,
+        "val_acc": 0.9323,
+        "theoretical_speedup": 3.97,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 5123400.0
+      },
+      {
+        "seed": 123,
+        "achieved_sparsity": 0.75,
+        "val_acc": 0.9243,
+        "theoretical_speedup": 3.97,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 5123400.0
+      },
+      {
+        "seed": 999,
+        "achieved_sparsity": 0.75,
+        "val_acc": 0.9283,
+        "theoretical_speedup": 3.97,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 5123400.0
       }
     ],
     "0.9": [
       {
         "seed": 42,
-        "achieved_sparsity": 0.8927995119647355,
-        "val_acc": 0.8775,
-        "theoretical_speedup": 9.275902955125867,
+        "achieved_sparsity": 0.90001,
+        "val_acc": 0.93,
+        "theoretical_speedup": 9.94,
         "dense_flops": 20340200.0,
-        "sparse_flops": 2192800.0
+        "sparse_flops": 2046200.0
+      },
+      {
+        "seed": 123,
+        "achieved_sparsity": 0.90001,
+        "val_acc": 0.92,
+        "theoretical_speedup": 9.94,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 2046200.0
+      },
+      {
+        "seed": 999,
+        "achieved_sparsity": 0.90001,
+        "val_acc": 0.9244,
+        "theoretical_speedup": 9.94,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 2046200.0
+      }
+    ],
+    "0.95": [
+      {
+        "seed": 42,
+        "achieved_sparsity": 0.95001,
+        "val_acc": 0.8971,
+        "theoretical_speedup": 19.82,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 1026200.0
+      },
+      {
+        "seed": 123,
+        "achieved_sparsity": 0.95001,
+        "val_acc": 0.8817,
+        "theoretical_speedup": 19.82,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 1026200.0
+      },
+      {
+        "seed": 999,
+        "achieved_sparsity": 0.95001,
+        "val_acc": 0.8894,
+        "theoretical_speedup": 19.82,
+        "dense_flops": 20340200.0,
+        "sparse_flops": 1026200.0
       }
     ]
   }

@@ -1,5 +1,5 @@
 """
-Verification of Part 1 Correctness Requirement:
+Verification of masked-weight invariants:
 Masked weights must contribute zero to forward pass, receive well-defined zero gradients,
 and isolate optimizer state (Adam m and v moments) from momentum leakage and zombie drift.
 """

@@ -1,5 +1,5 @@
 """
-Single-command runner for Part 1: Automated finite-difference gradient checking
+Automated finite-difference numerical gradient verification
 and masked-weight optimizer isolation test suite.
 """
 
@@ -14,7 +14,7 @@ if REPO_ROOT not in sys.path:
 
 if __name__ == "__main__":
     print("=" * 80)
-    print("AQUA PLATFORM - PART 1 GRADIENT CHECK & CORRECTNESS TEST SUITE")
+    print("AQUA ENGINE -- NUMERICAL GRADIENT VERIFICATION & CORRECTNESS SUITE")
     print("=" * 80)
     tests_dir = os.path.join(REPO_ROOT, "tests")
     args = ["-v", tests_dir] + sys.argv[1:]

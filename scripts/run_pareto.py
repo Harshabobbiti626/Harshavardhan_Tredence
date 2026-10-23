@@ -1,6 +1,6 @@
 """
-Single-command runner for Part 4: Sparsity-Accuracy Pareto sweep across multiple seeds.
-Generates committed plots and raw JSON numbers, and verifies the falsifiable claim.
+Sparsity-Accuracy Pareto sweep across multiple random seeds.
+Evaluates accuracy retention vs achieved sparsity and non-zero CSR FLOP reduction.
 """
 
 import os
@@ -15,14 +15,14 @@ import numpy as np
 from train.experiment import run_pareto_experiment
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="AQUA Platform - Part 4 Pareto Sweep")
+    parser = argparse.ArgumentParser(description="AQUA Engine - Pareto Sweep")
     parser.add_argument("--quick", action="store_true", help="Quick mode for rapid reproduction (1 seed, 3 sparsities, 2 epochs)")
     parser.add_argument("--epochs", type=int, default=8, help="Epochs per run (default: 8, or 2 in --quick mode)")
     parser.add_argument("--output-dir", type=str, default="results", help="Output directory for plots and JSON")
     args = parser.parse_args()
 
     print("=" * 80)
-    print("AQUA PLATFORM - PART 4 SPARSITY-ACCURACY PARETO SWEEP & PROOF")
+    print("AQUA ENGINE -- SPARSITY-ACCURACY PARETO SWEEP & BENCHMARK")
     print("=" * 80)
 
     if args.quick:
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         seeds = [42]
         epochs = 2 if args.epochs == 8 else args.epochs
     else:
-        # Full challenge reproduction sweep: 0%, 50%, 75%, 90%, 95% across 3 distinct random seeds
+        # Benchmark sweep across multiple random seeds: 0%, 50%, 75%, 90%, 95%
         sparsity_levels = [0.0, 0.50, 0.75, 0.90, 0.95]
         seeds = [42, 123, 999]
         epochs = args.epochs
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
 
     print("\n" + "=" * 80)
-    print("FALSIFIABLE QUANTITATIVE CLAIM VERIFICATION")
+    print("EMPIRICAL HYPOTHESIS VERIFICATION")
     print("=" * 80)
     print(f"At 90% target parameter sparsity on MNIST classification:")
     print(f"  - First-order Taylor Saliency pruning achieves: {sal_mean:.2f}% +/- {sal_std:.2f}% val accuracy")

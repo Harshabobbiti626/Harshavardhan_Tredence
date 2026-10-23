@@ -7,6 +7,7 @@ from prune.criteria import (
     TaylorSaliencyCriterion,
     MagnitudeCriterion,
     MovementCriterion,
+    RandomCriterion,
 )
 from prune.scheduler import CubicSparsityScheduler, ConstantSparsityScheduler
 from prune.mask import Pruner
@@ -17,6 +18,7 @@ __all__ = [
     "TaylorSaliencyCriterion",
     "MagnitudeCriterion",
     "MovementCriterion",
+    "RandomCriterion",
     "CubicSparsityScheduler",
     "ConstantSparsityScheduler",
     "Pruner",

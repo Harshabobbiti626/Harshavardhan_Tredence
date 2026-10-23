@@ -44,9 +44,11 @@ class SGD(Optimizer):
         lr: float = 1e-2,
         momentum: float = 0.0,
         weight_decay: float = 0.0,
+        sanitize_moments: bool = True,
     ):
         super().__init__(params, lr=lr, weight_decay=weight_decay)
         self.momentum = momentum
+        self.sanitize_moments = sanitize_moments
 
     def step(self) -> None:
         for p in self.params:
@@ -56,7 +58,7 @@ class SGD(Optimizer):
             grad = p.grad.copy()
 
             # Enforce 0 gradient for masked weights
-            if p.mask is not None:
+            if self.sanitize_moments and p.mask is not None:
                 grad = grad * p.mask
 
             if self.weight_decay > 0.0:
@@ -70,7 +72,7 @@ class SGD(Optimizer):
                 v = self.momentum * v + grad
 
                 # Sanitize momentum buffer for masked weights
-                if p.mask is not None:
+                if self.sanitize_moments and p.mask is not None:
                     v = v * p.mask
                 self.state[pid]["v"] = v
                 step_direction = v
@@ -80,7 +82,7 @@ class SGD(Optimizer):
             p.data = p.data - self.lr * step_direction
 
             # Enforce masked weights remain 0
-            if p.mask is not None:
+            if self.sanitize_moments and p.mask is not None:
                 p.data = p.data * p.mask
 
 
@@ -112,10 +114,12 @@ class Adam(Optimizer):
         betas: Tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-8,
         weight_decay: float = 0.0,
+        sanitize_moments: bool = True,
     ):
         super().__init__(params, lr=lr, weight_decay=weight_decay)
         self.beta1, self.beta2 = betas
         self.eps = eps
+        self.sanitize_moments = sanitize_moments
 
     def step(self) -> None:
         for p in self.params:
@@ -125,7 +129,7 @@ class Adam(Optimizer):
             grad = p.grad.copy()
 
             # Enforce gradient is strictly zero for masked weights
-            if p.mask is not None:
+            if self.sanitize_moments and p.mask is not None:
                 grad = grad * p.mask
 
             if self.weight_decay > 0.0:
@@ -151,8 +155,8 @@ class Adam(Optimizer):
             v = self.beta2 * v + (1.0 - self.beta2) * (grad ** 2)
 
             # CRITICAL OPTIMIZER ISOLATION:
-            # If masked, zero out moments to prevent momentum leakage or zombie drift
-            if p.mask is not None:
+            # If masked and sanitization enabled, zero out moments to prevent momentum leakage or zombie drift
+            if self.sanitize_moments and p.mask is not None:
                 m = m * p.mask
                 v = v * p.mask
 
@@ -174,5 +178,5 @@ class Adam(Optimizer):
             p.data = p.data - self.lr * step_val
 
             # Enforce exact zero on masked weights
-            if p.mask is not None:
+            if self.sanitize_moments and p.mask is not None:
                 p.data = p.data * p.mask
